@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chromalyze Skin Tone Detector</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+      background-color: #f9f9f9;
+    }
+    #inputImage {
+      margin-top: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    #result {
+      margin-top: 30px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Chromalyze</h1>
+  <p>Upload your photo to detect your skin tone and seasonal style type!</p>
+  <input type="file" accept="image/*" onchange="predictSkinTone(event)">
+  <br>
+  <img id="inputImage" width="224" height="224" style="display:none;">
+  <div id="result"></div>
+
+  <script>
+    async function loadModel() {
+      window.model = await tf.loadLayersModel('skin-model/model.json');
+    }
+    loadModel();
+
+    async function predictSkinTone(event) {
+      const img = document.getElementById('inputImage');
+      img.src = URL.createObjectURL(event.target.files[0]);
+      img.style.display = 'block';
+
+      img.onload = async () => {
+        const tensor = tf.browser.fromPixels(img)
+          .resizeNearestNeighbor([224, 224])
+          .toFloat()
+          .expandDims();
+        const prediction = await window.model.predict(tensor).data();
+        const labels = ["Fair Cool", "Fair Warm", "Medium Cool", "Medium Warm", "Deep Cool", "Deep Warm"];
+        const styleMap = {
+          "Fair Cool": "Summer – Try lavender, icy blue, rose pink",
+          "Fair Warm": "Spring – Try peach, coral, mint green",
+          "Medium Cool": "Winter – Try navy, fuchsia, emerald",
+          "Medium Warm": "Autumn – Try rust, olive, mustard",
+          "Deep Cool": "Winter – Try black, sapphire, burgundy",
+          "Deep Warm": "Autumn – Try copper, terracotta, forest green"
+        };
+        const resultLabel = labels[prediction.indexOf(Math.max(...prediction))];
+        document.getElementById('result').innerText =
+          `Detected Skin Tone: ${resultLabel}\n${styleMap[resultLabel]}`;
+      };
+    }
+  </script>
+</body>
+</html>
